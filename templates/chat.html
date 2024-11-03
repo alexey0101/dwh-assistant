@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>DWH Assistant Chat</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Open+Sans&display=swap">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container-fluid vh-100 d-flex flex-column">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+            <div class="container">
+                <a class="navbar-brand" href="#">
+                    DWH Assistant
+                </a>
+            </div>
+        </nav>
+        <div class="container flex-grow-1 d-flex flex-column">
+            <div id="chat-window" class="chat-window flex-grow-1 overflow-auto mt-3 mb-3 p-3">
+            </div>
+            <form id="chat-form" class="mb-3">
+                <div class="input-group">
+                    <input type="text" id="message" class="form-control" placeholder="Введите ваш вопрос..." autocomplete="off">
+                    <button class="btn btn-primary" type="submit"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        $(function() {
+            $('#chat-form').on('submit', function(e) {
+                e.preventDefault();
+                let message = $('#message').val();
+                if (message.trim() === '') {
+                    return;
+                }
+                $('#chat-window').append(
+                    '<div class="message-row user-message">' +
+                        '<div class="message"><strong>Вы:</strong> ' + message + '</div>' +
+                    '</div>'
+                );
+                $('#message').val('');
+                scrollToBottom();
+
+                var loadingMessage = $(
+                    '<div class="message-row bot-message" id="loading-message">' +
+                        '<div class="message">Бот печатает...</div>' +
+                    '</div>'
+                );
+                $('#chat-window').append(loadingMessage);
+                scrollToBottom();
+
+                $.ajax({
+                    url: '/get_response',
+                    method: 'POST',
+                    data: { message: message },
+                    success: function(response) {
+                        $('#loading-message').remove();
+                        $('#chat-window').append(
+                            '<div class="message-row bot-message">' +
+                                '<div class="message"><strong>Бот:</strong><br>' +
+                                '<p><strong>Сгенерированный SQL-запрос:</strong></p>' +
+                                '<pre>' + response.sql_query + '</pre>' +
+                                '<p><strong>Результат:</strong></p>' + response.message + '</div>' +
+                            '</div>'
+                        );
+                        scrollToBottom();
+                    },
+                    error: function() {
+                        $('#loading-message').remove();
+                        $('#chat-window').append(
+                            '<div class="message-row bot-message">' +
+                                '<div class="message">Произошла ошибка. Попробуйте еще раз.</div>' +
+                            '</div>'
+                        );
+                        scrollToBottom();
+                    }
+                });
+            });
+
+            function scrollToBottom() {
+                $('#chat-window').stop().animate({
+                    scrollTop: $('#chat-window')[0].scrollHeight
+                }, 800);
+            }
+        });
+    </script>
+</body>
+</html>
